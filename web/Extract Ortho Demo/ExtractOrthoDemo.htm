@@ -1,0 +1,288 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>ExtractOrthoImages API Sample App</title>
+
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta charset="utf-8" http-equiv="X-UA-Compatible" content="IE=edge" />
+   
+    <style type="text/css">
+        .Table {display: table;}
+        .Row {display: table-row;}
+        .Cell {display: table-cell; border: solid; border-width: thin; padding-left: 5px; padding-right: 5px;}
+    </style>
+
+    <script>
+
+        //Bing Maps API key. 
+        var BingMapsAPIkey = "ArayndEyn1aAjJv5PGsoGtZJMtyQdo7_yrhcdbAdwh2sk9cE03SzAmBVOfZkhnjv";
+
+        //This is the base URL for the API Endpoint. 
+        var baseURL = "https://api.gic.org";    
+
+        var latitude = 41.744158;  
+        var longitude = -88.040249;
+
+        //var layerName;
+        var pushpin;
+        var PinLocation;
+
+        var authToken = "";
+        var map;
+        //var VerticalImages = [];
+        //var VerticalImagesFiltered = [];
+
+        var BlueAOIList = [];
+        var GrayAOIList = [];
+
+        function loadMapScenario() {        
+            //Load the Map control
+            map = new Microsoft.Maps.Map(document.getElementById('myMap'), {
+                credentials: BingMapsAPIkey
+            });
+
+            PinLocation = new Microsoft.Maps.Location(latitude,longitude);
+            map.setView({center: PinLocation,zoom: 18});
+            
+            pushpin = new Microsoft.Maps.Pushpin(PinLocation, { color: 'red'});
+            map.entities.push(pushpin);
+
+            //Add Handler for map click. Used fto move the target pin on click
+            Microsoft.Maps.Events.addHandler(map, 'click', function (e) { handleMapClick('mapClick', e); });
+        }
+
+        function handleMapClick(id, e) {
+            var point = new Microsoft.Maps.Point(e.getX(), e.getY());
+            PinLocation = e.target.tryPixelToLocation(point);
+            pushpin.setLocation(PinLocation);
+            drawStaticMaps(PinLocation.latitude,PinLocation.longitude);
+        }    
+
+        function drawStaticMaps(latitude,longitude) {
+
+            var blueINDX = document.querySelector('input[name="blueID"]:checked').value;
+            var grayINDX = document.querySelector('input[name="grayID"]:checked').value;
+
+            var blueStaticMapURL = "https://api.gic.org/images/ExtractOrthoImages/" + 
+                "?layer=" + BlueAOIList[blueINDX].layer + "&AOI=" + BlueAOIList[blueINDX].aoiname + 
+                "&ycoordinate=" + latitude + "&xcoordinate=" + longitude + 
+                "&zoom=20&width=600&height=400&EPSG=4326&authtoken=" +authToken;
+            BlueImageDiv.innerHTML="<img src='" + blueStaticMapURL + "'>";
+
+            var grayStaticMapURL = "https://api.gic.org/images/ExtractOrthoImages/" + 
+                "?layer=" + GrayAOIList[grayINDX].layer + "&AOI=" + GrayAOIList[grayINDX].aoiname + 
+                "&ycoordinate=" + latitude + "&xcoordinate=" + longitude + 
+                "&zoom=20&width=600&height=400&EPSG=4326&authtoken=" +authToken;
+            GrayImageDiv.innerHTML="<img src='" + grayStaticMapURL + "'>";
+        }
+
+        function refreshCoverage() {
+
+            GrayAOIList.length=0;
+            BlueAOIList.length=0;
+            
+            //FIND ALL AOI'S IN THE SELECTED LAYER AT THE CLICKED POINT
+            var metadataURL = baseURL  + "/metadata/OrthoCoverage?" + 
+                "wkt=POINT(" +  map.getCenter().longitude + " " +  map.getCenter().latitude + ")" + "&token=" + authToken ;
+
+            var AOIHTML= "";
+            fetch(metadataURL)
+                .then(res => res.json())
+                .then(data => {
+
+                    var iteration=0;
+                    while (data.features[iteration] !=null)  { 
+                        var thisitem = {
+                                    aoiname: data.features[iteration].properties.AOI,
+                                    layer: data.features[iteration].properties["layer"],
+                                    mindate: data.features[iteration].properties["Min Capture date"],
+                                    maxdate: data.features[iteration].properties["Max Capture date"]
+                                    };
+                        var thisLayerName =  "" + data.features[iteration].properties["layer"];           
+                        if (thisLayerName.indexOf("gray")>-1){
+                            GrayAOIList.push(thisitem);
+                        }   else {
+                            BlueAOIList.push(thisitem);
+                        } 
+                        
+                        iteration++;       
+                    } 
+
+                    sortAOIArray(GrayAOIList);
+                    sortAOIArray(BlueAOIList);
+                    
+                    AOIHTML += "GRAY AOIs<BR>";
+                    var grayID=-1;
+                    GrayAOIList.forEach(element => {
+                        grayID ++;
+                        AOIHTML += "<input type='radio' id='genderm' name='grayID' value='" + grayID + "' />" +
+                            "<a href=\"javascript:AddAOILayer('" + 
+                            element.aoiname + "','" +element.layer + "')\">" + element.aoiname + "</a>" + 
+                            " [" + element.layer + "] <br>"  +
+                            element.mindate + " to " + element.maxdate + "<br><br>";
+
+
+                    });
+
+                    AOIHTML += "<br><br>BLUE AOIs<BR>";
+                    var blueID=-1;
+                    BlueAOIList.forEach(element => {
+                        blueID++;
+                        AOIHTML += "<input type='radio' id='genderm' name='blueID' value='" + blueID + "' />" +
+                            "<a href=\"javascript:AddAOILayer('" + 
+                            element.aoiname + "','" +element.layer + "')\">" + element.aoiname + "</a>" + 
+                            " [" + element.layer + "] <br>"  +
+                            element.mindate + " to " + element.maxdate + "<br><br>";
+                    });
+
+                    Info2Panel.innerHTML = AOIHTML;
+                });
+        }
+
+        function AddAOILayer(AOIname,layerName) {
+            map.layers.clear();
+            
+            var layerConstructor =  'https://api.gic.org/images/GetOrthoImageTile/' + layerName + 
+                '/{zoom}/{x}/{y}/?AOI=' + AOIname + '&AuthToken=' + authToken;   
+
+            //Add a Vexcel layer to the map
+            var AOILayer = new Microsoft.Maps.TileLayer({
+                mercator: new Microsoft.Maps.TileSource({
+                    uriConstructor: layerConstructor
+                })
+            });
+            map.layers.insert(AOILayer);
+        }
+        
+        function parseCoordinates() {
+            //Parse the latitude and longitude from the text box. 
+            var SearchText = searchBox.value.trim();
+            var coords = SearchText.split(",");
+            latitude = parseFloat(coords[0].trim());
+            longitude = parseFloat(coords[1].trim());
+
+            PinLocation = new Microsoft.Maps.Location(latitude,longitude);
+            map.setView({center: PinLocation,zoom: 18});
+            pushpin.setLocation(PinLocation);
+            refreshCoverage();
+        }
+
+        //THis method is called whenever the user enters text in the search box. 
+        function search() {
+            if(event.key === 'Enter') {
+                parseCoordinates();
+            }
+        }
+
+        function sortAOIArray(thisarray) {
+            thisarray.sort(function(a, b){
+                var x = a.mindate.toLowerCase();
+                var y = b.mindate.toLowerCase();
+                if (x < y) {return 1;}
+                if (x > y) {return -1;}
+                return 0;
+            }); 
+        }
+
+        function refreshAuthToken() {
+            if (authToken != "") return;
+
+            var userID  = txtUserid.value.trim();
+            var password  = txtPW.value.trim();
+
+            //var userID  = "steve.lombardi@geointel.org";
+            //var password  = "";
+
+            if (userID=="") {
+                authToken="";
+                return;
+            }
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+            
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+            urlencoded.append("password", password);
+            
+            var requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: urlencoded,
+                redirect: "follow"
+            };
+
+            var authURL = baseURL + "/auth/Login";
+
+            fetch(authURL,requestOptions )
+                .then(res => res.json())
+                .then(data => {
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+    </script>
+	</head>
+    <body>
+  
+    <div class="Table">
+        <div class="Row">
+            <div class="cell" style="vertical-align: top;">
+                <H3>ExtractOrthoImages API Demo</H3>
+                <input type="text" value="41.744158, -88.040249" id="searchBox"   onkeydown="search()" /> &nbsp;
+                <input id="SearchBtn" type="button" value="Search and refresh coverage" onClick="parseCoordinates()" /> &nbsp;&nbsp;
+
+                <input id="btnRefreshCoverage" type="button" value="Refresh coverage at map center" onClick="refreshCoverage()" /> &nbsp;&nbsp;
+                <BR> Start by either searching for a coordinate or hitting the 'refresh coverage' button above to 
+                    fill in coverage for the region <br>
+                    in the right rail. You can then click any AOI to make it the basemap. 
+                    When you click the map, ExtractOrthoImages() is <br>
+                    called to fetch static map images for the property, corresponding 
+                    to the AOI's whose radio buttons are selected.
+            </div>
+
+            <div class="cell"  >
+                <div style="float: left; clear: none;"> 
+                    UserID: <input type="text" autocomplete="email" id="txtUserid"/> <br><br>
+                    password: <input type="password" value="" id="txtPW"/><br>
+                    <input id="btnSignIn" type="button" value="sign in" onClick="refreshAuthToken()" />
+                </div>
+                <div style="float: left; clear: none; padding-left:2em;">
+                    <img src="https://www.vexcel-imaging.com/wp-content/uploads/2018/04/logo_vexcel3.png" height="70" width="186"> 
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="Row">
+            <div class="Cell" id="LeftRail" style="vertical-align: top" >   
+                <div id="myMap" style="width:810px; height:450px;"><strong>map</strong></div>
+                <div></div>
+                
+            </div>
+           
+            <div class="Cell" id="RightRail" style="vertical-align: top" >   
+                <div  id="Info2Panel" style="vertical-align: top" ><strong>Info</strong></div>
+                <div id="staticMap"></div>
+            </div>
+            
+        </div>
+
+        <div class="Row">
+            <div class="Cell" id="BlueImageDiv"></div>
+            <div class="Cell" id="GrayImageDiv"></div>
+        </div>
+
+    </div>
+
+    <script type='text/javascript' 
+          src='https://www.bing.com/api/maps/mapcontrol?callback=loadMapScenario&key=' + BingMapsAPIkey async defer>
+        </script>
+
+    </body>
+    
+	</html>

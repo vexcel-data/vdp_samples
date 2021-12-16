@@ -1,0 +1,23 @@
+name: vdp_python_tools
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - gdal
+  - geopandas
+  - rasterio
+  - pyproj
+  - geopandas
+  - leafmap
+  - python-pdal
+  - laspy
+  - osmnx
+  - folium
+  - numpy
+  - pillow
+  - requests
+  - scikit-learn
+  - scipy
+  - jupyter
+  

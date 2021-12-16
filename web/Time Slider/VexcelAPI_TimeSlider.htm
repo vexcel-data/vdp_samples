@@ -1,0 +1,447 @@
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Vexcel API timeline slider Sample App</title>
+
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta charset="utf-8" http-equiv="X-UA-Compatible" content="IE=edge" />
+   
+    <style type="text/css">
+        .Table {display: table;}
+        .Row {display: table-row;}
+        .Cell {display: table-cell; border: solid; border-width: thin; padding-left: 5px; padding-right: 5px;}
+    </style>
+
+    <script>
+        /*
+        This sample application will show you how to use the Vexcel API to Find all of the imagery 
+        available at a given coordinate including bluesky, graysky, ortho, oblique, and Condor 20cm.
+        It will then show how to take the metadata received and use it to request any of the associated images
+        
+        As you read through this sample code you will learn how to generate an authorization token, 
+        then use that token in subsequent calls for imagery and metadata
+        */ 
+        
+        //This is the base URL for the API Endpoint. 
+        var baseURL = "https://api.gic.org";    
+
+        //this is the default latitude and longitude that we are going to get imagery and metadata for,
+        //the user can specify their own coordinate in the UI if they wish
+        var latitude = 40.61256; 
+        var longitude = -111.953658;
+
+        //create an array for each orientation to hold metadata about the images for the given orientation
+        var VerticalImages = [];
+        var NorthImages = [];
+        var SouthImages = [];
+        var EastImages = [];
+        var WestImages = [];
+        var InfraredImages = [];
+
+        var authToken = "";
+        
+        function generateMetadataForOrientation(latitude, longitude) { 
+            refreshAuthToken();
+
+            var slider = document.getElementById("myRange");
+
+            var orientation="";
+            var rotateflag="";
+            VerticalImages = [];
+            NorthImages=[];
+            SouthImages=[];
+            EastImages=[];
+            WestImages=[];
+            InfraredImages = [];
+
+            //What layers were selected in the dropdown list?
+            var sel = document.getElementById('cmbLayers');
+            var Layers = sel.value;
+
+            //Build a REST URL to return metadata in JSON format for the layers selected. 
+            var orthoMetadataURL = baseURL + "/metadata/FindImagesInPoint?layer=" + Layers + 
+                "&format=json&EPSG=4326&orientation=all" +  
+                "&wkt=POINT(" + longitude + "+" + latitude + ")&AuthToken=" + authToken ;
+
+            fetch(orthoMetadataURL)
+                .then(res => res.json())
+                .then(data => {
+                    
+                    var iteration=0;
+                    var validRecords = 0;
+
+                    //loop through each of the objects in the returned JSON, each representing a valid map view
+                    while (data[iteration] !=null)  {
+                        //Build a URL that will be used to request the image, when the user cliccks its link in the UI
+                        orientation = data[iteration].orientation;
+                        rotateflag="";
+                        if (orientation=="NN" || orientation=="NE" || orientation=="NS" || orientation=="NW" ) {
+                            orientation="NADIR";
+                            rotateflag="&nadirRotatedNorth=yes";
+                        }
+
+                        var imageURL = baseURL + "/images/ExtractImages/" + data[iteration].layername + 
+                            "?mode=one&orientation=" + orientation + 
+                            "&logo=yes" +
+                            rotateflag +
+                            "&imagename=" + data[iteration].image_id +
+                            "&EPSG=4326&xcoordinate=" +longitude + "&ycoordinate=" + latitude + 
+                            "&width=800&height=600&AuthToken=" + authToken ;
+                       
+                       if (orientation=="I") {
+                            imageURL = baseURL + "/images/ExtractNIRImages/" + data[iteration].layername + 
+                                "?mode=one" + 
+                                "&logo=yes" +
+                                "&imagename=" + data[iteration].image_id +
+                                "&EPSG=4326&xcoordinate=" +longitude + "&ycoordinate=" + latitude + 
+                                "&width=800&height=600&AuthToken=" + authToken ;
+                       }
+
+                        var thisitem = {
+                            imageurl: imageURL,
+                            imageid: data[iteration].image_id ,
+                            timestamp: data[iteration].capture_date,
+                            gsd: data[iteration].gsd,
+                            pixelsize: data[iteration].pixel_size,
+                            layername: data[iteration].layername,
+                            camera: data[iteration].cameratechnology,
+                            omega: data[iteration].omega,
+                            phi: data[iteration].phi,
+                            kappa: data[iteration].kappa,
+                            bboxwkt: data[iteration].bbox_wkt,
+                            orientation: orientation
+                            };
+                        
+                        var inDateRange = true;
+                        var initDate = "";
+                        var endDate = "";
+                        var curDate = Date.parse(data[iteration].capture_date);
+
+                        var tmpstr = startdate.value;
+                        if (tmpstr.length>1 ) {
+                            initDate = new Date(startdate.value);
+                            if (curDate < initDate) inDateRange = false;
+                        }
+
+
+                        tmpstr = enddate.value;
+                        if (tmpstr.length>1 ) {
+                            endDate = new Date(enddate.value);
+                            if (curDate > endDate) inDateRange = false;
+                        }
+                        
+
+                        if (inDateRange == true) {
+                            validRecords++;
+
+                            switch (orientation){
+                                case 'NADIR':
+                                   VerticalImages.push(thisitem);  
+                                    break;
+                                case 'N':
+                                    NorthImages.push(thisitem);  
+                                    break;
+                                case 'E':
+                                    EastImages.push(thisitem);
+                                    break;
+                                case 'S':
+                                    SouthImages.push(thisitem);
+                                    break;
+                                case 'W':
+                                    WestImages.push(thisitem); 
+                                    break;
+                                case 'I':
+                                    InfraredImages.push(thisitem); 
+                                    break;
+
+                            }   
+                            slider.max=validRecords;
+                        }
+
+                        iteration++;
+                    }
+
+                     sortImageArray(VerticalImages);
+                     sortImageArray(NorthImages);
+                     sortImageArray(SouthImages);
+                     sortImageArray(EastImages);
+                     sortImageArray(WestImages);
+                     sortImageArray(InfraredImages);
+
+                    orientationChanged();
+                    slider.value=1;
+                    sliderChanged();
+
+                }).catch(err => {
+                    // code to handle request errors
+                    //alert("An error occured when requesting metadata");
+                });
+        }
+
+        function sortImageArray(thisarray) {
+
+            thisarray.sort(function(a, b){
+                        var x = a.timestamp.toLowerCase();
+                        var y = b.timestamp.toLowerCase();
+                        if (x < y) {return -1;}
+                        if (x > y) {return 1;}
+                        return 0;
+                    }); 
+        }
+
+        function ShowMapImage(imageURL, layername,ImageID) {
+            var sel = document.getElementById('cmbZoomLevel');
+            var zoom = sel.value;
+            imageURL += "&zoom="+zoom;
+
+            var linkURL = baseURL + "/images/GetImage/" + ImageID + "/" + layername + "?zoom=0&AuthToken=" + authToken;
+            var linkHTML= "<a target='_blank' href='" +linkURL + "'>" + 
+                "<img  width=800 height=600 src='" +  imageURL + "'> " + "</a>";
+
+            MapPanel.innerHTML = linkHTML;
+        }
+
+        function orientationChanged() {
+            var sel = document.getElementById("cmbOrientation");
+            var orientation = sel.value;
+            var maxLength=0;
+            var thisImageSet;
+
+            if (orientation=="V") {
+                maxLength = VerticalImages.length;
+                thisImageSet = VerticalImages;
+            }
+            if (orientation=="N") {
+                maxLength = NorthImages.length;
+                thisImageSet = NorthImages;
+            }
+            if (orientation=="S") {
+                maxLength = SouthImages.length;
+                thisImageSet = SouthImages
+            }
+            if (orientation=="E") {
+                maxLength = EastImages.length;
+                thisImageSet = EastImages
+            }
+            if (orientation=="W") {
+                maxLength = WestImages.length;
+                thisImageSet = WestImages;
+            }
+          
+            if (orientation=="I") {
+                maxLength = InfraredImages.length;
+                thisImageSet = InfraredImages;
+            }
+             
+            var cellwidth =parseInt( (800-(maxLength*1.85))/maxLength);
+
+            var legendHTML = "<div class='Row' style='width: 800px'>";   
+            for (var cellid=0;cellid<maxLength;cellid++) {
+                var gsd =  thisImageSet[cellid].gsd;
+                gsd=gsd*100;
+                gsd=gsd.toFixed(0);
+
+                var tmp = thisImageSet[cellid].layername;
+                var bgcolor = "white";
+
+                tmp= tmp.substring(0,1);
+                if (tmp=="b") {
+                    if (gsd>=15) 
+                        bgcolor="blue";
+                    else
+                        bgcolor="lightblue";
+                }
+
+                if (tmp=="g") bgcolor= "gray";
+               
+
+                //gsd=".";
+                legendHTML += "<div style='border:1px solid ; float:left; font-size: 9; background-color: " + bgcolor + ";height: 20;width: " + cellwidth +"px;'>" + gsd + "</div>";
+            }
+            legendHTML += "</div>"
+            sliderLegend.innerHTML =legendHTML;
+
+            var slider = document.getElementById("myRange");
+            slider.max=maxLength;
+            slider.value = 1;
+            sliderChanged();
+        }
+
+        function sliderChanged() {
+            var currentImageArray;
+
+            var sel = document.getElementById("cmbOrientation");
+            var orientation = sel.value;
+            if (orientation=="V") currentImageArray = VerticalImages;
+            if (orientation=="N") currentImageArray = NorthImages;
+            if (orientation=="S") currentImageArray = SouthImages;
+            if (orientation=="E") currentImageArray = EastImages;
+            if (orientation=="W") currentImageArray = WestImages;
+            if (orientation=="I") currentImageArray = InfraredImages;
+            
+            var slider = document.getElementById("myRange");
+            InfoPanel.innerHTML = "<b>Timestamp:</b> " + currentImageArray[slider.value-1].timestamp + 
+                "<br><b>Layername:</b> " + currentImageArray[slider.value-1].layername +
+                "<br><b>Image ID:</b> " + currentImageArray[slider.value-1].imageid +
+                "<br><b>Orientation:</b> " + currentImageArray[slider.value-1].orientation +
+                "<br><b>GSD:</b> " + currentImageArray[slider.value-1].gsd +
+                "<br><b>Pixel size:</b> " + currentImageArray[slider.value-1].pixelsize +
+                "<br><b>Omega:</b> " + currentImageArray[slider.value-1].omega +
+                "<br><b>Phi:</b> " + currentImageArray[slider.value-1].phi +
+                "<br><b>Kappa:</b> " + currentImageArray[slider.value-1].kappa +
+                "<br><b>Camera:</b> " + currentImageArray[slider.value-1].camera +
+                "<br><b>bbox_WKT:</b> " + currentImageArray[slider.value-1].bboxwkt;
+
+            ShowMapImage(currentImageArray[slider.value-1].imageurl, currentImageArray[slider.value-1].layername,
+                currentImageArray[slider.value-1].imageid );
+        }
+
+        function refreshAuthToken() {
+            if (authToken != "") return;
+
+            //Fill in with your UserID and Password. email support@geointel.org if you need credentials
+          
+            var userID  = txtUserid.value.trim();
+            var password  = txtPW.value.trim();
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+            
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+            urlencoded.append("password", password);
+            
+            var requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: urlencoded,
+                redirect: "follow"
+            };
+
+            var authURL = baseURL + "/auth/Login";
+
+            fetch(authURL,requestOptions )
+                .then(res => res.json())
+                .then(data => {
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    //Great! we have our token, lets go get some metadata
+                    generateMetadataForOrientation(latitude, longitude);
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+        //THis method is called whenever the user enters text in the search box. 
+        //If they hit the enter key, parse the coordinate and initiate a search.
+        function search() {
+            if(event.key === 'Enter') {
+                parseCoordinates();
+            }
+        }
+
+        function parseCoordinates() {
+            //Parse the latitude and longitude from the text box. 
+            var SearchText = searchBox.value.trim();
+
+            var coords = SearchText.split(",");
+            latitude = parseFloat(coords[0].trim());
+            longitude = parseFloat(coords[1].trim());
+
+            //Initiate a search for metadata at the specified coordiante 
+            generateMetadataForOrientation(latitude,longitude);
+        }
+        
+    </script>
+
+	</head>
+
+    <body>
+  
+
+    <div class="Table">
+        <div class="Row">
+            <div class="cell" style="vertical-align: top;">
+                Zoom Level:&nbsp;
+                <select id="cmbZoomLevel">   
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+    
+                &nbsp;Orientation:&nbsp;
+                <select id="cmbOrientation"  onchange="orientationChanged()">   
+                    <option value="V">Vertical</option>
+                    <option value="N">North</option>
+                    <option value="S">South</option>
+                    <option value="E">East</option>
+                    <option value="W">West</option>
+                    <option value="I">Infrared</option>
+                </select>
+
+
+                &nbsp;Layers:&nbsp;
+            <select id="cmbLayers">   
+                <option value="bluesky-ultra,bluesky-ultra-g,bluesky-high,graysky-g,graysky">All</option>
+                <option value="bluesky-ultra,bluesky-ultra-g">All Blue 7cm</option>
+                <option value="bluesky-ultra">Vexcel Blue 7cm</option>
+                <option value="bluesky-ultra-g">Geomni Blue 7cm</option>
+                <option value="graysky-g,graysky">Gray</option>
+                <option value="bluesky-high">Blue 20cm</option>
+                <option value="bluesky-ultra-oceania">Australia Blue 7cm</option>
+                <option value="bluesky-ultra-europe">Europe Blue 7cm</option>
+            </select>
+
+            &nbsp;&nbsp;
+            <input type="date" id="startdate" name="startdate" placeholder="select start date" >
+
+            &nbsp;
+            <input type="date" id="enddate" name="enddate" placeholder="select end date" >
+
+            <br><br><input type="text" value="36.17515,-86.736" id="searchBox"   onkeydown="search()" /> &nbsp;
+            <input id="SearchBtn" type="button" value="Get Metadata" onClick="parseCoordinates()" /> &nbsp;&nbsp;
+
+
+            </div>
+
+            <div class="cell"  >
+                <div style="float: left; clear: none;"> 
+                    UserID: <input type="text" autocomplete="email" id="txtUserid"/> <br><br>
+                    password: <input type="password" value="" id="txtPW"/>
+                </div>
+                <div style="float: left; clear: none; padding-left:2em;">
+                    <img src="https://www.vexcel-imaging.com/wp-content/uploads/2018/04/logo_vexcel3.png" height="70" width="186"> 
+                </div>
+                
+            
+                
+            </div>
+        </div>
+
+
+        <div class="Row">
+            <div id="sliderCell" class="Cell" >
+                <div class="slidecontainer" style="width:800px;">
+                    <input style="width:800px;" type="range" min="1" max="4" value="1" class="slider" id="myRange" onInput="sliderChanged()">
+                    <div id="sliderLegend" style="width:800px;"> </div>
+                </div>
+            </div>
+            <div id="MoreInfo" class="Cell"></div>
+        </div>
+
+        <div class="Row">
+            <div class="Cell" id="MapPanel" style="width:810px;"><strong>map</strong></div>
+            <div class="Cell" id="InfoPanel" style="vertical-align: top" ><strong>Info</strong></div>
+        
+        </div>
+
+    </div>
+
+
+
+    </body>
+    
+	</html>

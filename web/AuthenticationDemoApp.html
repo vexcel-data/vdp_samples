@@ -1,0 +1,178 @@
+﻿
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Authentication Demo</title>
+
+    <script>
+
+        var authToken = "";
+        const redirect_uri = "https://vexceldemoappsandservices.azurewebsites.net/pages/AuthenticationDemoApp.html";
+        //const redirect_uri = window.location.href;
+
+        function onLoad() {
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+
+            // Auto fill userId
+            const username = urlParams.get('username');
+            document.getElementById("txtUserid").value = username;
+
+            // Auth code & state
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            if (code)
+            {
+                // Disable user input
+                document.getElementById("txtUserid").value = state;
+                document.getElementById("txtUserid").disabled = true;
+                // Hide "Next" button
+                document.getElementById("NextBtn").style = "display: none";
+                // Get federated token
+                refreshFederatedAuthToken(code, state);
+            }
+
+        }
+
+        function getUserType() {
+            var userID = txtUserid.value.trim();
+
+            let url = new URL("https://api.gic.org/auth/GetUserAuthenticationSystem");
+           
+
+            // Add KVP
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+
+            url.search = urlencoded.toString();
+            console.log(url)
+            return
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+
+                    if (data.type == "password")
+                    {
+                        // Disable user input
+                        document.getElementById("txtUserid").disabled = true;
+                        // Show password input
+                        document.getElementById("passwordDiv").style = "";
+                        // Hide "Next" button
+                        document.getElementById("NextBtn").style = "display: none";
+                        // Show "Login" button
+                        document.getElementById("LoginBtn").style = "";
+                    }
+                    else if (data.type == "federated")
+                    {
+                        codeEndpoint = data.url + redirect_uri;
+                        window.location.href = codeEndpoint;
+                    }
+
+                }).catch(err => {
+                    // code to handle request errors
+                });
+        }
+
+        function GenerateMapImage() {
+            var latitude= 40.542146;
+            var longitude = -111.994797;
+
+            var blueStaticMapURL = "https://api.gic.org/images/ExtractOrthoImages/" +
+                "?layer=bluesky-ultra" +
+                "&ycoordinate=" + latitude + "&xcoordinate=" + longitude +
+                "&zoom=20&width=1000&height=800&EPSG=4326&authtoken=" +authToken;
+
+            MapImageDiv.innerHTML="<img src='" + blueStaticMapURL + "'>";
+        }
+
+
+        function refreshAuthToken() {
+            if (authToken != "") return;
+
+            var userID  = txtUserid.value.trim();
+            var password  = txtPW.value.trim();
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+            urlencoded.append("password", password);
+
+            var requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: urlencoded,
+                redirect: "follow"
+            };
+            var authURL = "https://api.gic.org/auth/Login";
+
+            fetch(authURL,requestOptions )
+                .then(res => res.json())
+                .then(data => {
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    //Great! we have our token, lets go get some metadata
+                    GenerateMapImage();
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+
+        function refreshFederatedAuthToken(code, state) {
+            if (authToken != "") return;
+
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("code", code);
+            urlencoded.append("state", state);
+            urlencoded.append("redirect_uri", redirect_uri);
+
+            let url = new URL("https://api.gic.org/auth/FederatedLogin");
+
+            url.search = urlencoded.toString();
+            console.log(url)
+            return
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data)
+
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    //Great! we have our token, lets go get some metadata
+                    GenerateMapImage();
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+
+    </script>
+
+</head>
+
+<body onload="onLoad()">
+
+
+    <div>
+        <div id='userDiv'>UserID: <input type="text" autocomplete="email" id="txtUserid" value="" /><br><br></div>
+        <div id='passwordDiv' style="display: none">
+            Password: <input type="password" value="" id="txtPW" /><br><br>
+        </div>
+
+        <input id="NextBtn" type="button" value="Next" onClick="getUserType()" />
+        <input id="LoginBtn" type="button" style="display: none" value="Login" onClick="refreshAuthToken()" />
+        <br><br>
+    </div>
+
+    <div id="MapImageDiv">
+
+    </div>
+
+</body>
+</html>

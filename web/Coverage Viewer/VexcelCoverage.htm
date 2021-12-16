@@ -1,0 +1,465 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Vexcel Coverage Viewer</title>
+
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta charset="utf-8" http-equiv="X-UA-Compatible" content="IE=edge" />
+   
+    <style type="text/css">
+        .Table {display: table;}
+        .Row {display: table-row;}
+        .Cell {display: table-cell; border: solid; border-width: thin; padding-left: 5px; padding-right: 5px;}
+    </style>
+
+    <script>
+        var currentCoverageLayer;
+
+        var metadataHTML="";
+        var layerName = "";
+        var coverageType = "";
+        var infobox;
+
+        var VexLayer1;
+
+        //Bing Maps API key. 
+        var BingMapsAPIkey = "ArayndEyn1aAjJv5PGsoGtZJMtyQdo7_yrhcdbAdwh2sk9cE03SzAmBVOfZkhnjv";
+
+        //This is the base URL for the API Endpoint. 
+        var baseURL = "https://api.gic.org";   
+
+        var latitude = 37.2; 
+        var longitude = -97.8;
+        var authToken = ""; 
+        var map;
+        var DrawingLayer;
+
+        function loadMapScenario() {        
+            //Load the Map control
+            map = new Microsoft.Maps.Map(document.getElementById('myMap'), {
+                credentials: BingMapsAPIkey
+            });
+
+            Microsoft.Maps.loadModule('Microsoft.Maps.GeoJson');
+
+            var centerLoc = new Microsoft.Maps.Location(latitude, longitude);
+            map.setView({center: centerLoc,zoom: 4});
+
+            currentCoverageLayer = new Microsoft.Maps.Layer();
+            map.layers.insert(currentCoverageLayer); 
+            
+            infobox = new Microsoft.Maps.Infobox(centerLoc, { visible: false, autoAlignment: true });
+            infobox.setMap(map);
+
+             //and a layer for drawing
+			DrawingLayer = new Microsoft.Maps.Layer();
+			map.layers.insert(DrawingLayer);
+
+            Microsoft.Maps.loadModule('Microsoft.Maps.DrawingTools', function () {
+                var tools = new Microsoft.Maps.DrawingTools(map);
+                tools.showDrawingManager(function (manager) {
+
+                    var da = Microsoft.Maps.DrawingTools.DrawingBarAction;
+					manager.setOptions({
+						drawingBarActions: da.point | da.polygon , 
+						fillColor:'rgba(255, 0, 0, 0.0)'
+					});
+
+                    Microsoft.Maps.Events.addHandler(manager, 'drawingStarted', function () { 
+                        DrawingLayer.clear();
+                    })
+
+                    Microsoft.Maps.Events.addHandler(manager, 'drawingEnded', function () { 
+                        var shapes = manager.getPrimitives();
+                        var panelPoly = shapes[0];
+                        manager.clear();
+                        DrawingLayer.add(shapes);
+
+                        var coordCount;
+                        var locs;
+                        var polyWKT = "";
+
+                        try {
+                            //treat it like a polygon. there should be a better way to know the entity type.
+                            locs = panelPoly.getLocations();
+                            coordCount= locs.length;
+                            //if (coordCount>2) coordCount = coordCount -1;
+                            polyWKT = "POLYGON((";
+                            for (i=0; i< (coordCount); i++) {
+                                polyWKT += locs[i].longitude + " " + locs[i].latitude;
+                                if (i< (coordCount-1))  polyWKT += ",";
+                            }
+                            polyWKT +="))";
+                        }
+                        catch(err) {
+                            //if not a poly, it is a point.
+                            locs = panelPoly.getLocation();
+                            polyWKT = locs.latitude + ", " + locs.longitude;
+                            infoPanel.innerHTML = "you clicked at " +  polyWKT;
+                        }
+
+                        txtWKT.value = polyWKT;
+                    });
+                    
+                });
+            });
+
+        }
+
+        function clearMap() {
+            currentCoverageLayer.clear();
+            map.layers.remove(VexLayer1);
+            //chkToggleVexImagery.checked = false;
+            DrawingLayer.clear();
+            infoPanel.innerHTML = "";
+            txtWKT.value = "";
+        }
+
+        async function getlayerListForUser() {
+           
+            var fileURL="https://api.gic.org/wmts?request=GetCapabilities&authtoken=" + authToken;
+
+            fetch(fileURL)
+                .then(res => res.text())
+                .then(data => { 
+                    var LayerList = document.querySelector('#cmbLayers');
+
+                    var inline = data;
+                    var posit = inline.indexOf("<Layer>");
+
+                    while (posit>0) {
+                        var posTitle = inline.indexOf("<ows:Title>",posit) +11;
+                        var posEnd = inline.indexOf("</ows:Title>",posit) ;
+                        var thisLayerName = inline.substring(posTitle,posEnd);
+
+                        var thisOption = document.createElement('option');
+                        thisOption.text = thisLayerName;
+                        thisOption.value = thisLayerName;
+                        LayerList.add(thisOption);
+
+                        posit = inline.indexOf("<Layer>",posit+5);
+                    }
+                })
+        }
+
+
+
+        function showCoverage() {
+            //Clear current layer and display area
+            Info2Panel.innerHTML = "querying... hang on...";
+            currentCoverageLayer.clear();
+            map.layers.remove(VexLayer1);
+
+            layerName = document.getElementById('cmbLayers').value;
+            coverageType = document.getElementById('cmbCoverageType').value;
+
+            var layerConstructor =  'https://api.gic.org/images/GetOrthoImageTile/' + layerName + '/{zoom}/{x}/{y}/?AuthToken=' + authToken;   
+
+
+            //Add a Vexcel layer to the map
+            VexLayer1 = new Microsoft.Maps.TileLayer({
+                mercator: new Microsoft.Maps.TileSource({
+                    uriConstructor: layerConstructor
+                })
+            });
+            map.layers.insert(VexLayer1);
+            //alert(VexLayer1.getZIndex());
+            //VexLayer1.setZIndex(10005);
+
+            var metadataURL = baseURL  + "/metadata/" + coverageType + "Coverage?layer=" + layerName + "&token=" + authToken ;
+            var WKT = txtWKT.value.trim();
+            if (WKT !="") {
+                var coords = WKT.split(",");
+                if (coords.length==2) {    //Just a coordinate was specified
+                    var latitude = parseFloat(coords[0].trim());
+                    var longitude = parseFloat(coords[1].trim());
+                    WKT="POINT(" + longitude + " " + latitude + ")";
+                    setMapCenter(latitude,longitude,13);
+                } 
+               
+                metadataURL += "&wkt=" + WKT;
+            }
+            
+            AddLayerOutline( metadataURL, 'rgba(160, 0, 255, .3)', currentCoverageLayer, layerName);
+        }
+
+
+        function  AddLayerOutline( layerURL, outlinecolor, layer, layername) {
+
+            metadataHTML = "";
+            infoPanel.innerHTML = "API Request for coverage:<br>" + layerURL;
+
+            fetch(layerURL)
+                .then(res => res.json())
+                .then(data => {
+
+
+                    var iteration=0;
+                    metadataHTML += "<h2>" + layername + "</h2>" +
+                    "total area: " + data.area + "<br><br>";
+
+                    while (data.features[iteration] !=null)  {
+
+                        var coord = "" + data.features[iteration].geometry.coordinates[0][0][0];
+                        var coords = coord.split(",");
+                        
+                        var linkURL= "setMapCenter(" + coords[1].trim() + "," + coords[0].trim() + ",13)";
+                        var thisLoc = new Microsoft.Maps.Location(coords[1].trim(),coords[0].trim());
+
+                        thisAOIHTML= "<a href='javascript:" + linkURL + "'>" +
+                            data.features[iteration].properties.AOI + "</a><br>" + 
+                            "layer: " + data.features[iteration].properties.layer + "<br>" +
+                            "coverage type: " + data.features[iteration].properties["Coverage Type"] + "<br>" +
+                            "area: " + data.features[iteration].properties["AOI Area"] + "<br>" +
+                            "resolution range: " + data.features[iteration].properties["Min GSD"] + " to " +data.features[iteration].properties["Max GSD"] + "<br>" +
+                            "mindate: " + data.features[iteration].properties["Min Capture date"] + "<br>" + 
+                            "maxdate: " + data.features[iteration].properties["Max Capture date"] + "<br><br>";
+ 
+                            metadataHTML += thisAOIHTML;    
+
+                        var jsonSnip =  data.features[iteration].geometry;
+                        Microsoft.Maps.loadModule('Microsoft.Maps.GeoJson', function () {
+                            var featureCollection = Microsoft.Maps.GeoJson.read(jsonSnip, 
+                                { polygonOptions: { fillColor: outlinecolor } });
+
+                            for (var i = 0; i < featureCollection.length; i++) {
+                                var f = featureCollection[i];
+                                f.metadata = {
+                                        title: data.features[iteration].properties.AOI ,
+                                        description: thisAOIHTML 
+                                    };
+
+                                
+                                Microsoft.Maps.Events.addHandler(f, 'click', function (args) {
+                                    infobox.setOptions({
+                                        location: args.location,
+                                        title: args.target.metadata.title,
+                                        description: args.target.metadata.description,
+                                        visible: true
+                                    });
+                                });
+
+                                layer.add(f);
+                                //map.entities.push(featureCollection[i]);
+                            }
+                            });
+                     
+                        iteration++;
+                    }
+
+                    Info2Panel.innerHTML = metadataHTML;
+                }).catch(err => {
+                    // code to handle request errors
+                    //alert("An error occured when requesting metadata");
+                });
+        }
+
+        function exportLayer() {
+            var prims = currentCoverageLayer.getPrimitives();
+            ExportKML(prims);
+        }
+
+
+        
+		function ExportKML(prims) {
+			//Load the GeoXml module.
+			Microsoft.Maps.loadModule('Microsoft.Maps.GeoXml', function () {
+
+            //Pass in the map to export all data on it into an XML string.
+            var xml = Microsoft.Maps.GeoXml.write(prims, {
+                xmlFormat: Microsoft.Maps.GeoXmlFormat.kml,
+                roundLocations: true,
+                indentChars: '    ' //Use 4 spaces instead of \t for indenting 
+            });
+
+            //Bing inserts standalone attribute. G Earth doesn't like it, so remove it
+            xml = xml.replace("standalone='yes'", " "); 
+
+            //Display the XML in the text area.
+            var d = new Date();
+            var filename = layerName + "_" + coverageType + "_" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() + ".kml";
+            filename = filename.replace(",", "_" );
+            download(xml,filename,".kml");
+            });
+		}
+
+		
+
+		// Function to download data to a file
+		function download(data, filename, type) {
+			var file = new Blob([data], {type: type});
+			if (window.navigator.msSaveOrOpenBlob) // IE10+
+				window.navigator.msSaveOrOpenBlob(file, filename);
+			else { // Others
+				var a = document.createElement("a"),
+						url = URL.createObjectURL(file);
+				a.href = url;
+				a.download = filename;
+				document.body.appendChild(a);
+				a.click();
+				setTimeout(function() {
+					document.body.removeChild(a);
+					window.URL.revokeObjectURL(url);  
+				}, 0); 
+			}
+		}
+
+
+        function refreshAuthToken() {
+            //if (authToken != "") return;
+
+            var userID  = txtUserid.value.trim();
+            var password  = txtPW.value.trim();
+
+
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+            
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+            urlencoded.append("password", password);
+            
+            var requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: urlencoded,
+                redirect: "follow"
+            };
+
+            var authURL = baseURL + "/auth/Login";
+
+            fetch(authURL,requestOptions )
+                .then(res => res.json())
+                .then(data => {
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    if (authToken.length <20) {
+                        alert("Invalid Token. Reload the page, check your creds, and try again.")
+                    } else {
+                        //alert (authToken);
+                    }
+                    //Valid Token. Go Query for Layer List
+                    getlayerListForUser();
+                }).catch(err => {
+                    // code to handle request errors
+                    alert("trouble signing you in. reload the page, check your creds, and try again.")
+                });
+
+        }
+
+
+
+        function setMapCenter(latitude,longitude,zoom2) {
+            PinLocation = new Microsoft.Maps.Location(latitude,longitude);
+            map.setView({center: PinLocation,zoom: zoom2});
+        }
+
+        function toggleVexImagery ( ){
+            if (chkToggleVexImagery.checked) {
+                VexLayer1.setVisible(true);
+            } else {
+                VexLayer1.setVisible(false);
+            }
+		}
+        
+    </script>
+
+	</head>
+
+    <body>
+  
+
+    <div class="Table">
+        <div class="Row">
+            <div class="cell" style="vertical-align: top;">
+                <div class="cell"  >
+                    <div style="float: left; clear: none;">
+                        <img src="https://www.vexcel-imaging.com/wp-content/uploads/2018/04/logo_vexcel3.png" height="70" width="186"> 
+                    </div>
+
+                    <div style="float: left; clear: none;  padding-left:1em;"> 
+                        UserID: <input type="text" autocomplete="email" id="txtUserid" value=""/> <br><br>
+                        password: <input type="password" value="" id="txtPW"/><br><br>
+                        <input id="btnSignIn" type="button" value="sign in" onClick="refreshAuthToken()" /> &nbsp;&nbsp;
+                    </div>
+                    
+                    <div  style="float: left; clear: none; padding-left:2em;">
+                        Layer:&nbsp;
+                        <select id="cmbLayers">   
+                            
+                        </select>
+<!-- 
+                        <option value="bluesky-ultra">Bluesky Ultra</option>
+                        <option value="bluesky-ultra-g">Bluesky Ultra-g</option>
+                        <option value="graysky">Graysky</option>          
+                        <option value="graysky-g">Graysky-g</option>
+                        <option value="bluesky-high">Bluesky High</option>
+                        <option value="bluesky-ultra-oceania">Australia Bluesky Ultra</option>
+                        <option value="bluesky-ultra-europe">Europe Bluesky Ultra</option>
+                        <option value="bluesky-high-europe">Europe Bluesky High</option>
+
+                        <option value="bluesky-ultra,bluesky-ultra-g">All Blue 7cm</option>
+                        <option value="graysky-g,graysky">Gray</option>
+ -->
+                        <br><br>
+                        Coverage Type:&nbsp;
+                        <select id="cmbCoverageType">   
+                            <option value="Ortho">Orthomosaic</option>
+                            <option value="ImageLayer">Discrete Images</option>
+                            <option value="DSM">Digital Surface Model (DSM)</option>
+                            <option value="DTM">Digital Terrain Model (DTM)</option>
+                        </select>
+                        <br><br>
+                        Optional lat,long or WKT: <input type="search"  id="txtWKT" size="35" value=""/>
+                        
+                    </div>
+
+                    <div  style="float: left; clear: none; padding-left:1em;"> 
+                        <input id="btnShowCoverage" type="button" value="Get Coverage" onClick="showCoverage()" />
+                        <br>
+                        <input checked type="checkbox" id="chkToggleVexImagery" onchange='javascript:toggleVexImagery()'>Show Ortho Imagery
+                        <br><br>
+                        <input id="btnClearMap" type="button" value="Clear map" onClick="clearMap()" />
+                    </div>
+
+                    
+                </div>
+            </div>
+
+            <div class="Cell" id="Rightheader" style="vertical-align: top" >   
+                <div  style="float: left; clear: none; padding-left:4em;"> 
+                    <input id="btnExport" type="button" value="Export AOI's as KML" onClick="exportLayer()" /><br>    
+                </div>
+            </div>
+
+        </div>
+
+        <div class="Row">
+            <div class="Cell" id="LeftRail" style="vertical-align: top" >   
+                <div id="myMap" style="width:1200px; height:800px;"></div>
+            </div>
+           
+            <div class="Cell" id="RightRail" style="vertical-align: top" >   
+                <div  id="Info2Panel"  style="width: 300px; height: 80vh; float: left;  overflow-y: scroll; overflow-x:hidden;"    >
+                    <strong>AOI LIST</strong>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="Row">
+            <div class="Cell" id="cellContainer" style="vertical-align: top" >   
+                <div id="infoPanel" style="width:1100px; "></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type='text/javascript' 
+          src='https://www.bing.com/api/maps/mapcontrol?callback=loadMapScenario&key=' + BingMapsAPIkey async defer>
+        </script>
+
+    </body>
+    
+	</html>
