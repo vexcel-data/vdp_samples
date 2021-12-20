@@ -1,24 +1,73 @@
 
-"""Params"""
-filepath_boundary = f"C:/Users/PatrickEdwards/Downloads/California_Work_Units.zip"
-filepath_output = "./data/tmp/Test1"
-imagery_type = "ortho"
-zoom = 16
-@click.command()
-@click.option('--filepath-boundary', required=True, help='The location of a shapefile OR a zipped folder containing shapefile and associated .dbf, .shx and .prj')
-@click.option('--filepath-output', required=True, help='The folder where the mosaiced tiles will be written')
-@click.option('--imagery-type', required=True, type=click.Choice(['ortho-high-area', 'ortho-urban-area', 'dsm'], case_sensitive=False), help="Either 'ortho-high-area', 'ortho-urban-area' or 'dsm'. ortho-high-area is only available at zoom level 16-20 and has a GSD of 20cm or better.")
-@click.option('--zoom', required=True, type=click.Choice(["16", "17", "18", "19", "20", "21"], case_sensitive=False), help='Zoom level (16-20) of map tiles used')
-@click.option('--output-epsg', required=False, help='EPSG for the coordinates of the bounds of the output raster file')
-def download_and_mosaic_in_shapefile(filepath_boundary, filepath_output, imagery_type, zoom, output_epsg=4326):
-    zoom = int(zoom)
-    gdf = gpd.read_file(filepath_boundary)
-    gdf.geometry = gdf.geometry.to_crs(epsg=4326) 
+import pdal
+import sys
+sys.path
+sys.path.append('C:\Python35\Lib\site-packages\laspy')
+import numpy as np
+import laspy
+import json
 
-    aoi_geometry = gdf.dissolve().iloc[0].geometry
-    download_and_mosaic_in_geometry(aoi_geometry, zoom, imagery_type, filepath_output, output_epsg)
+from vdp_python_tools.tile_math import degrees_per_pixel, pixel_to_coord
+
+def dsm_to_pointcloud(elevation_array, bounds, rgb_array = None):
+    pixels_wide, pixels_high, _ = elevation_array.shape
+
+    deg_per_pixel_wide, deg_per_pixel_high = degrees_per_pixel(bounds, pixels_wide, pixels_high)
+
+    points_3d = []
+    if rgb_array is not None:
+        for p_x in range(pixels_wide):
+            for p_y in range(pixels_high):
+                x, y = pixel_to_coord(p_x, p_y, bounds, deg_per_pixel_wide, deg_per_pixel_high)
+                z = elevation_array[p_y, p_x, 0]
+                points_3d.append([x, y, z, *rgb_array[p_y, p_x]])
+    else:
+        for p_x in range(pixels_wide):
+            for p_y in range(pixels_high):
+                x, y = pixel_to_coord(p_y, p_x, bounds, deg_per_pixel_wide, deg_per_pixel_high)
+                z = elevation_array[p_y, p_x, 0]
+                points_3d.append([x, y, z])
+    return points_3d
+
+
+def write_point_cloud_data(xyz, filepath_point_cloud_name, zoom, color = False):
+    # 1. Create a new header
+    header = laspy.LasHeader(point_format=2, version="1.2")
+    #header.add_extra_dim(laspy.ExtraBytesParams(name="random", type=np.int32))
+    #header.scales = np.array([0.1, 0.1, 0.1])
+
+    header.offset = [0, 0, 0] # could need to make this ground level from DTM
+    header.scales = np.array([1, 1, 0.01])
+
+    # 2. Create a Las
+    las = laspy.LasData(header)
+
+    las.x = xyz[:, 0]
+    las.y = xyz[:, 1]
+    las.z = xyz[:, 2]
+    if color:
+        las.red = xyz[:, 3]
+        las.green = xyz[:, 4]
+        las.blue = xyz[:, 5]
+    #las.random = np.random.randint(-1503, 6546, len(las.points), np.int32)
+
+    las.write(filepath_point_cloud_name)
     
-if __name__ == '__main__':
-    download_and_mosaic_in_shapefile()
+    pipeline_config = [
+        {
+            "filename": filepath_point_cloud_name,
+            "spatialreference":"EPSG:3857+3855"
+        },
+        {
+            "type":"filters.reprojection",
+            "in_srs":"EPSG:3857+3855",
+            "out_srs":"EPSG:3857+3855"
+        },
+        {
+            "filename": filepath_point_cloud_name
+        }
+    ]
 
-# python mosaic_tiles_in_shapefile.py --filepath-boundary "Halff_4326.shp" --filepath-output "./output" --imagery-type ortho --zoom 17
+
+    pipeline = pdal.Pipeline(json.dumps(pipeline_config))
+    pipeline.execute()

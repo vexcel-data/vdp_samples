@@ -17,6 +17,7 @@ vdp_python_tools.egg-info/
 notebooks/cache
 /.vs
 *.pyc
+notebooks/*/cache/*
 
 notebooks/data
 !notebooks/data/sample

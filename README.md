@@ -26,9 +26,10 @@ In order to use this repo effectively, you'll need to install vdp_python_tools (
 2. From within this folder (at the same level as this README.md) run `conda env create -f environment.yml` to install all of the necessary libraries based on the supplied environment.yml. It will create an environment named `vdp_python_tools`
 3. Run `conda activate vdp_python_tools`
 4. Run `pip install .`
-5. If everything ran without an error, you should be able to run the following:
+5. The best way to handle authentication is to have your user credentials stored as environment variables. You could pass your username and password to the authentication function each time, but it's easier and more secure to avoid placing your credentials in code and just use environment variables. Add your password e.g "aReallyGoodPassword123" to an evironment variable called `VDP_PASSWORD` and your email e.g my@email.com to `VDP_USERNAME`. [This article](https://dev.to/biplov/handling-passwords-and-secret-keys-using-environment-variables-2ei0#:~:text=To%20save%20passwords%20and%20secret,Setting%20click%20on%20Environment%20Variables%20) does a great job of explaining how to set environment variables on Windows, Linux or OSX.
+6. If everything ran without an error, you should be able to run the following:
    1. `python`
-   2. (from within the python console) `from vdp_python_tools.tile_math import num2deg`
+   2. (from within the python console) `from vdp_python_tools.authentication import login; login()` and that should print a long string of random letters and numbers which is your authentication token! The Python notebooks in notebooks/basic explain how to use this token to get data back from the API.d 
 
 For more infomration on the functions within vdp_python_tools, see the section further down.
 

@@ -8,7 +8,7 @@ def get_tile_boundary(x, y, zoom):
     tile_boundary = geometry_from_bounding_box(w, s, e, n)
     return tile_boundary
 
-def tiles_in_polygon(geometry, zoom, tile_footprint_filepath=None):
+def tiles_in_polygon(geometry, zoom, output_format="list"):
     w, n, e, s = geometry.bounds
     minx, miny = deg2num(w, s, zoom)
     maxx, maxy = deg2num(e, n, zoom)
@@ -20,9 +20,12 @@ def tiles_in_polygon(geometry, zoom, tile_footprint_filepath=None):
             if tile_boundary.intersects(geometry):
                 tiles.append((x, y, zoom))
                 geometries.append(tile_boundary)
-    if tile_footprint_filepath:
-        gpd.GeoDataFrame(geometry=geometries).to_file(tile_footprint_filepath)
-    return tiles
+    if output_format == "GeoDataFrame":
+        return gpd.GeoDataFrame(tiles, columns=["x", "y", "zoom"], geometry=geometries)
+    elif output_format == "list":
+        return tiles
+    raise NotImplementedError(f"output_format of {output_format} not supported, use 'list' or 'GeoDataFrame'")
+
 
 def num2deg(xtile, ytile, zoom):
     n = 2.0 ** zoom
@@ -30,6 +33,7 @@ def num2deg(xtile, ytile, zoom):
     lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
     lat_deg = math.degrees(lat_rad)
     return (lon_deg, lat_deg)
+
 
 def deg2num(lon_deg, lat_deg, zoom):
     lat_rad = math.radians(lat_deg)
@@ -39,20 +43,21 @@ def deg2num(lon_deg, lat_deg, zoom):
     return (xtile, ytile)
 
 def degrees_per_pixel(bounds, pixels_wide, pixels_high):
-    width_in_deg = bounds[2] - bounds[0]
-    height_in_deg = bounds[3] - bounds[1]
+    width_in_deg = abs(bounds[2] - bounds[0])
+    height_in_deg = abs(bounds[3] - bounds[1])
 
     deg_per_pixel_wide = width_in_deg/pixels_wide
     deg_per_pixel_high = height_in_deg/pixels_high
     return deg_per_pixel_wide, deg_per_pixel_high
 
 def pixel_to_coord(p_x, p_y, bounds, deg_per_pixel_wide, deg_per_pixel_high):
-    c_x = bounds[0] + p_x*deg_per_pixel_wide
-    c_y = bounds[1] + p_y*deg_per_pixel_high
+    left, bottom, right, top = bounds
+    c_x = left + p_x*deg_per_pixel_wide
+    c_y = top - p_y*deg_per_pixel_high
     return [ c_x, c_y]
 
 def coord_to_pixel(c_x, c_y, bounds, deg_per_pixel_wide, deg_per_pixel_high, pixels_wide, pixels_high):
-    p_x = int((c_x - bounds[0])/deg_per_pixel_wide)
-    p_y = int((c_y - bounds[1])/deg_per_pixel_high)
+    left, bottom, right, top = bounds
+    p_x = int((c_x - left)/deg_per_pixel_wide)
+    p_y = int((top - c_y)/deg_per_pixel_high)
     return [p_x, pixels_high - p_y]
-

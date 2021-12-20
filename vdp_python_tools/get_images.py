@@ -4,7 +4,8 @@ import numpy as np
 import shutil
 import io
 import os
-
+import math
+import time
 
 import geopandas as gpd
 import rasterio
@@ -19,7 +20,6 @@ from vdp_python_tools.tile_math import deg2num, num2deg, tiles_in_polygon
 from vdp_python_tools.authentication import login
 
 token = login()
-
 
 def georeference_raster_tile(x, y, zoom, path, epsg = 4326):
     w, s = num2deg(x, y, zoom) 
@@ -108,7 +108,7 @@ def download_and_mosaic_in_geometry(aoi_geometry, zoom, image_type, output_folde
     with rasterio.open(filepath_mosaic, "w", **out_meta) as dest:
         dest.write(mosaic)
 
-    if output_epsg == 4326:
+    if output_epsg == 3857:
         return # no more to do
 
     dst_crs = f'EPSG:{output_epsg}'
@@ -136,6 +136,7 @@ def download_and_mosaic_in_geometry(aoi_geometry, zoom, image_type, output_folde
                     resampling=Resampling.nearest)
 
 
+
 def write_tile_from_api(x, y, zoom, output_filepath, token, api="GetOrthoImageTile/bluesky-ultra", api_parameters = ""):
         url = f"https://api.vexcelgroup.com/images/{api}/{zoom}/{x}/{y}?token={token}" + api_parameters
         response = requests_get_with_catch(url, stream = True)
@@ -146,8 +147,7 @@ def write_tile_from_api(x, y, zoom, output_filepath, token, api="GetOrthoImageTi
             print("Tile failed to download", url)
             return response
                 
-import math
-import time
+
 
 def requests_get_with_catch(url, **kwargs):
     try:
