@@ -1,0 +1,663 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>PropertyInfo API Demo</title>
+
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta charset="utf-8" http-equiv="X-UA-Compatible" content="IE=edge" />
+
+   
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Load the Vexcel Map Control and required Styles -->
+    <script src="https://preview.app.vexcelgroup.com/map/0.0.4/Vexcel.js"></script>
+    <link rel="stylesheet" href="https://preview.app.vexcelgroup.com/map/0.0.4/css/styles.css" type="text/css"/>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+	</head>
+
+    <body>
+        <div class="container-fluid">
+            
+            <nav class="navbar navbar-light bg-light">                   
+                <form class="form-inline" onsubmit="return false;">
+                    <ul>
+                    <img src="http://gicapps.azurewebsites.net/static/img/vi-logo.png" width="50" height="50" alt=""> &nbsp;
+                    <input class="form-control mr-sm-2" type="text" placeholder="User ID" aria-label="Login" id="txtUserid" size="20"  />
+                    <button class="btn btn-outline-success my-2 my-sm-0"  id="NextBtn" type="button"  onClick="getUserType()" >Next</button> <br />
+                    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <input class="form-control mr-sm-2" style = "display: none" type="password" placeholder="Password" aria-label="Password" id="pwBox" size="20"   />
+                    <button class="btn btn-outline-success my-2 my-sm-0" style="display: none" id="LoginBtn" type="button"  onClick="Login()" >Login</button>
+                    </ul>
+                </form>
+                <div>
+                    <h5>Property Information API Viewer</h5>
+                    <input type="text" placeholder="Search" aria-label="Search" style="height:37px; border-radius:5px" value="27.858696,-82.713000" id="searchBox" size="35" /> 
+                    <button style="border-radius:5px; border:5px; height:37px; background-color:rgb(109, 182, 184)" id="SearchBtn" type="button" onClick="parseCoordinates()"" >Search</button>
+                </div>
+                    <div class="dropdown" >
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        <!--Commenting out the layer drop down for now to use the built in map control layer list-->
+                        <!--button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" 
+                            aria-haspopup="true" aria-expanded="false"> Layer List</button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleLandgridParcels" onchange='javascript:toggleLandgridParcels()'>Landgrid Parcels<br>
+                            </div>
+
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleGraySky" onchange='javascript:toggleGraySky()'>Gray sky<br>
+                            </div>
+
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleGraySkyG" onchange='javascript:toggleGraySkyG()'>Gray sky G<br>
+                            </div>
+
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleBlueSky" onchange='javascript:toggleBlueSky()'>Blue sky Ultra
+                            </div>
+
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleBlueSkyG" onchange='javascript:toggleBlueSkyG()'>Blue sky Ultra-G
+                            </div>
+
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleBlueSky20CM" onchange='javascript:toggleBlueSky20CM()'>Blue sky 20cm
+                            </div>                
+                            
+                            <div class="form-check"> 
+                                <input class="form-check-input" checked type="checkbox" id="chkToggleBlueAU" onchange='javascript:toggleBlueAU()'>Australia Blue sky
+                            </div> 
+
+                        </div-->
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu6" data-toggle="dropdown" 
+                            aria-haspopup="true" aria-expanded="false">Settings</button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenu6">
+                            <div class="form-check"> 
+                                                            
+                                <div class="dropdown-divider"></div>
+                                <a class='dropdown-item' href='javascript:showAbout()'>About...</a>
+                            </div>                                             
+                        </div>
+                    </div>
+            </nav>          
+
+            <div class="row row-eq-height h-75">
+                <div class="col h-75"  >    
+                    <div class="card ">    
+                        <div class="card-header" id="infoHeader">
+                                
+                        </div>
+                        <div class="card-body" style="max-height: 70vh; overflow-y: auto; ">  
+                            <div id="infoBody"  class="scrollable"> 
+                                <div class="text-center">
+                                    <br><br><br>
+                                    <img src="http://gicapps.azurewebsites.net/static/img/searchprompt.jpg" width="160" height="160" alt="">
+                                    <h4>Login and then <br>search for a location<br>and click on the map<br>to get started.<small class="text-muted"><br><br>We'll gather the property<br>attributes 
+                                        for you.<br><br></small></h4>
+                                    
+                                </div>
+                            </div>
+                        </div>       
+                    </div>
+                </div>
+                
+                <div id="mapContainer" class="col-9" style="z-index:990">
+                    <div  id="myMap">
+                    
+                    </div>
+
+                    <!--div id="mapControls" style="z-index: 998;position: absolute; bottom: 0; right: 150; display: none">
+
+                        <input class="btn btn-primary" id="btnClear" type="button" value="Clear Map Measurements" onClick="clearMeasurements()" /> 
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                 
+                        <button class="btn btn-primary" onclick="changeMode('2D')">2D</button>
+                        <button class="btn btn-primary" onclick="changeMode('3D')">3D</button>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    
+                        <button class="btn btn-primary" onclick="changeOrientation('N')" type="button">NORTH</button>
+                        <button class="btn btn-primary" onclick="changeOrientation('S');" type="button">SOUTH</button>
+                        <button class="btn btn-primary" onclick="changeOrientation('E');" type="button">EAST</button>
+                        <button class="btn btn-primary" onclick="changeOrientation('W');" type="button">WEST</button>
+                        <button class="btn btn-primary" onclick="changeOrientation('V');" type="button">VERTICAL</button>
+    
+    
+                        
+                    </div-->
+                </div>
+                
+                
+                
+                
+            </div>
+
+        </div>
+
+
+    </body>
+
+    <script>
+
+        var authToken = "";
+        //const redirect_uri = "http://localhost:5500/Footprints/PropertyInfoDemo.htm";
+        const redirect_uri = "https://gicapps.azurewebsites.net/static/PropertyInfoDemo.htm";
+
+        var vexMap;
+        var layerManager;
+        var vectorLayer;
+        var pushpinLayer;
+
+        var latitude = 27.858696;  
+        var longitude = -82.713000;
+
+        var maxRetries=7;
+        
+        var FootprintInfoHTML = "";
+        var numberOfTries = 0;
+        var FootprintComplete = false;
+        var currentRequestID ="";
+
+        function loadMapScenario() {    
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+
+            // Auth code & state
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            if (code)
+            {
+                // Disable user input
+                document.getElementById("txtUserid").value = state;
+                document.getElementById("txtUserid").disabled = true;
+                // Hide "Next" button
+                //document.getElementById("NextBtn").style = "display: none";
+                // Get federated token
+                refreshFederatedAuthToken(code, state);
+            }
+            
+            //If we don't have an authtoken yet, exit
+            if (authToken=="") return;
+
+            let instanceId = 2165; // 2165;  //Hardcoded to GIC instance for now.
+        
+            let map = document.getElementById('myMap');
+            while (map.firstChild) {
+                map.removeChild(map.firstChild);
+            }
+
+            //Create the map object, setting initialization parameters
+            vexMap = new Vexcel.Map({
+                target: 'myMap',
+                token: authToken,
+                layerSwitcher: true,
+                instanceId: instanceId,
+                center: [longitude, latitude],
+                zoom: 19,
+
+                init: {
+                    layers: true,
+                    callback: () => {
+                        layerManager = vexMap.getLayerManager();
+
+                        //Add a layer to draw building footprints into
+                        vectorLayer = new Vexcel.Layers.VectorLayer({
+                                visible: true,
+                                name: "Footprints",
+                                order: 990
+                            });
+
+                        layerManager.addLayer(vectorLayer);
+
+                        //Add a layer to draw Pushpins into
+                        pushpinLayer = new Vexcel.Layers.VectorLayer({
+                                visible: true,
+                                name: "Query Points",
+                                order: 997
+                            });
+
+                        layerManager.addLayer(pushpinLayer);
+
+
+                        //Set all layers visibility to false except for Bluesky Ultra.
+                        layerManager.getVexcelLayers().forEach (l=> {
+                                l.setVisible(false);
+                        } ) ;
+
+                        //now Just Turn On Bluesky Ultra
+                        var blueskyLayer = vexMap.getLayerManager().getVexcelLayer(Vexcel.Constants.BuiltInLayers.BLUESKY);
+                        blueskyLayer.setVisible(true);
+
+                        const clearMap = new Vexcel.Control.Button({
+                            html: '<i class="fa fa-ban"></i>',
+                            title: "Clear Map Measurements",
+                            handleClick: () => {
+                            clearMeasurements();
+                            },
+                        });
+
+                        const clearbar = new Vexcel.Control.Bar();
+                        vexMap.addControl(clearbar);
+                        clearbar.setPosition("bottom-left");
+                        clearbar.addControl(clearMap);
+
+                        //Adding Map Buttons
+                        const group = new Vexcel.Control.Bar({toggleOne: true, group: true});
+                        vexMap.addControl(group);
+                        group.setPosition("bottom-right");
+
+                        const twoD = new Vexcel.Control.Toggle({
+                            html: "2D",
+                            title: "2D",
+                            active: true,
+                            onToggle(active) {
+                                if (active) {
+                                changeMode('2D');
+                                }
+                            },
+                        });
+
+                        const threeD = new Vexcel.Control.Toggle({
+                            html: "3D",
+                            title: "3D",
+                            onToggle(active) {
+                                if (active) {
+                                changeMode('3D');
+                                }
+                            },
+                        });
+
+                        const north = new Vexcel.Control.Toggle({
+                            html: "N",
+                            title: "North",
+                            active: true,
+                            onToggle(active) {
+                                if (active) {
+                                changeOrientation('N');
+                                }
+                            },
+                        });
+                        const south = new Vexcel.Control.Toggle({
+                            html: "S",
+                            title: "South",
+                            onToggle(active) {
+                                if (active) {
+                                changeOrientation('S');
+                                }
+                            },
+                        });
+                        const east = new Vexcel.Control.Toggle({
+                            html: "E",
+                            title: "East",
+                            onToggle(active) {
+                                if (active) {
+                                changeOrientation('E');
+                                }
+                            },
+                        });
+                        const west = new Vexcel.Control.Toggle({
+                            html: "W",
+                            title: "West",
+                            onToggle(active) {
+                                if (active) {
+                                changeOrientation('W');
+                                }
+                            },
+                        });
+
+                        group.addControl(twoD);
+                        group.addControl(threeD);
+                        group.addControl(north);
+                        group.addControl(south);
+                        group.addControl(east);
+                        group.addControl(west);
+                    }
+                }
+            });
+
+            //callback for when the map is clicked, triggering a footprint search
+            vexMap.addListener(Vexcel.Events.MapEvents.CLICK, (e) => {
+                let coordinatesString =  "" + e.coordinates;
+                var clk = coordinatesString.split(",");
+                console.log(clk);
+
+                numberOfTries = 0;
+                FootprintComplete = false;
+                infoBody.innerHTML = "Querying...";
+
+                //Draw a pushpin at the point of click
+                const location = new Vexcel.Geometry.Location(clk[1], clk[0] );
+                const pointGeometry = new Vexcel.Geometry.Point(location);
+                const point = new Vexcel.Feature(pointGeometry);
+                pushpinLayer.addFeatures([point]); 
+
+                getFootprint(clk[1], clk[0] );
+            });
+
+            document.getElementById("mapControls").style = "z-index: 998;position: absolute; bottom: 0; right: 150";
+        }
+
+        function getFootprint(latitude,longitude) {
+
+            numberOfTries++;
+           
+            var url = "";
+            if (numberOfTries==1 || FootprintComplete == true) {
+                url = "https://api.gic.org/property/GetPropertyInformation?wkt=POINT(" +
+                    longitude + " " + latitude + ")" +
+                    "&callbackUrl=FAKECALLBACK&externalRequestId=FOO" +
+                    "&token=" +  authToken; 
+            }
+            else {
+                url = "https://api.gic.org/property/GetStatus?requestId=" + currentRequestID + "&token=" +  authToken;
+                infoBody.innerHTML = "Number of tries: " + numberOfTries;
+            }
+
+            //wait 5 seconds between checks for data
+            if (FootprintComplete == false && numberOfTries >1 && numberOfTries < maxRetries ) {
+                wait(5000);
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    
+                    var pinDescription="";
+                    FootprintInfoHTML = "";
+                    var OrthoImageHTML = "";
+
+                    //If the work is complete and the response is successful, we'll have building structures
+                    if (data.structures == null)  {  
+                       
+
+                        //We didn't get buildings back. 
+                        if (numberOfTries==1) {
+                            currentRequestID = "" + data.requestId;
+                        }
+
+                        if (numberOfTries >1  && FootprintComplete == false) {   
+                            resp = "" +data.status;
+                            if (resp != "InProgress") {
+                                FootprintComplete = true;
+                            }
+                                
+                        }
+                        
+                        var errorTxt = "" 
+                        if (data.errors != null) errorTxt = "" + data.errors;
+                        if (errorTxt != "") {
+                            infoBody.innerHTML ="An error occured:<br>" + errorTxt;
+                        } 
+                        else if (FootprintComplete == false && numberOfTries >= maxRetries ) {
+                            infoBody.innerHTML = "No results after " + numberOfTries + " requests. Try again in a minute.";
+                        } else {
+                            getFootprint(latitude,longitude);
+                        }
+                    }
+                    else {
+                        pinDescription = "<br>Request ID: " + data.request_id +
+                            "<br>Area: " + data.structures[0].footPrint.area + "<br>";
+  
+                        var centroidCoords = data.structures[0].roof_top_location.wkt;
+                        centroidCoords=centroidCoords.replace("POINT ","");
+                        centroidCoords=centroidCoords.replace("(","");
+                        centroidCoords=centroidCoords.replace(")","");
+                        centroidCoords = centroidCoords.split(" ");
+
+                        var lat = centroidCoords[1];
+                        var lon = centroidCoords[0];
+
+                        var applink = "https://app.vexcelgroup.com/#/app/home?latitude=" + lat + 
+                            "&longitude=" + lon + "&zoom=21";
+
+                        FootprintInfoHTML += "<a href='" + applink + "' target='_new'>Open in Vexcel app</a><br>" +
+                            "<b>Request ID: </b>" + data.request_id + "<br>" + 
+                            "<b>Capture Date: </b>" + data.capture_date + "<br>" +
+                            "<b>Point In Parcel? </b>" + data.inside_parcel + "<br>";
+
+                        //For each building structure in the response, format the attributes and draw the 
+                        //building outline on the map
+                        var cnt=0;
+                        while (data.structures[cnt] !=null) {
+                            if (data.structures[cnt].primaryStructure == true)
+                                FootprintInfoHTML += "<BR><b>PRIMARY STRUCTURE INFO</b><br>";
+                            else
+                                FootprintInfoHTML += "<BR><b>SECONDARY STRUCTURE INFO</b><br>";
+
+                            FootprintInfoHTML +=  
+                                "<b>Rooftop Location:</b> " + data.structures[cnt].roof_top_location.wkt + "<br>" + 
+                                "<b>Ground Elevation:</b> " + data.structures[cnt].ground_elevation.value + "<br>" + 
+                                "<b>Image Info:</b> GSD:" + data.structures[cnt].metadata.gsd + " Layer: " + data.structures[cnt].metadata.layer_name + "<br>" +       
+                                "<b>Footprint Area:</b> " + data.structures[cnt].footPrint.area + "<br>" +
+                                "<b>Solar Panels:</b> " + data.structures[cnt].roof_solar.value + " (" + data.structures[cnt].roof_solar.score + ")<br>" +
+                                "<b>Roof Condition:</b> " + data.structures[cnt].roof_condition.value + "<br>" +
+                                "<b>Roof Discolerated?</b> " + data.structures[cnt].roof_condition_report.discolorated.detected + " (percent discolered: " + data.structures[cnt].roof_condition_report.discolorated.percentage + ")<br>" +
+                                "<b>Roof Shape</b> " + data.structures[cnt].roof_shape.value + " (percent flat: " + data.structures[cnt].roof_shape.flatPercent + ")<br>" +
+                                "<b>Roof material:</b> " + data.structures[cnt].roof_material.class  +" (" + data.structures[cnt].roof_material.score + ")<br>" +
+                                "<b>Tree Cover Percent:</b> " + data.structures[cnt].tree_cover.percent + "<br>" +
+                                "<b>Defensible Space Report</b><br>" +
+                                "<b>30 feet</b> building coverage: " + data.structures[cnt].defensible_space.report.DSB30 + "%" +
+                                    "  tree coverage: " + data.structures[cnt].defensible_space.report.DST30 + "%<br>" +
+                                "<b>100 feet</b> building coverage: " + data.structures[cnt].defensible_space.report.DSB100 + "%" +
+                                    "  tree coverage: " + data.structures[cnt].defensible_space.report.DST100 + "%<br>";    
+                                                
+                            var wktPolygon = "" + data.structures[cnt].footPrint.wkt;
+
+                            var OrthoURL = "https://api.gic.org/images/ExtractOrthoImages/?layer=bluesky-ultra&zoom=21&EPSG=4326&wkt=" + wktPolygon + "&authtoken=" +authToken;
+                            OrthoImageHTML += "<br><b>ExtractOrthoImages call with tight crop of footprint at zoom 21 for building # " + (cnt+1) + "</b><br>" + 
+                                "<img src='" + OrthoURL + "'>";
+
+                            var roofCondition = parseInt(""+data.structures[cnt].roof_condition.value);
+                            var strokeColor = "#00ee00"; //Green
+                            if (roofCondition <4)
+                                strokeColor = "#ffff9c";  //yellow
+                            if (roofCondition <3)
+                                strokeColor = "#ee0000";  //red        
+
+                            const customStyle = new Vexcel.Style.Style({
+                            fill: new Vexcel.Style.Fill({ color: "rgba(230,10,10,0.01)"}),
+                            stroke: new Vexcel.Style.Stroke({
+                            color: strokeColor,
+                            width: 2,
+                            }),
+                            });
+                            
+                            const wktReader = new Vexcel.Geometry.Reader.WKT();
+                            var newFeature =wktReader.readFeature(wktPolygon);
+                            newFeature.setStyle(customStyle);
+                            vectorLayer.addFeatures([newFeature]);
+
+                            var coords = wktPolygon.split("|");
+        
+                            var locations = [];
+                            for (var indx =  coords.length-2; indx > -1; indx -= 2)
+                            {
+                                var thiscoord= [coords[indx+1],coords[indx] ];
+                            
+                                var l = new Vexcel.Geometry.Location( coords[indx+1], coords[indx]);
+                                locations.push(l);
+                            }
+
+                            
+                            const polygonGeom = new Vexcel.Geometry.Polygon([locations]);
+                            const polygon = new Vexcel.Feature(polygonGeom);
+                            polygon.setStyle(customStyle);
+                            vectorLayer.addFeatures([polygon]); 
+                
+                            cnt++;
+                        }
+
+                        //Now append all of the PROPERTY scoped attributes
+                        FootprintInfoHTML += "<br><b>PROPERTY FEATURES</b><br>" +
+                                "<b>Pool:</b> " + data.property_features.pool.detected + " (" +data.property_features.pool.score + ")<br>" +
+                                "<b>Pool Enclosure:</b> " + data.property_features.enclosure.detected + " (" +data.property_features.enclosure.score + ")<br>" +
+                                "<b>Diving board:</b> " + data.property_features.diving_board.detected + " (" +data.property_features.diving_board.score + ")<br>" +
+                                "<b>Water slide:</b> " + data.property_features.water_slide.detected + " (" +data.property_features.water_slide.score + ")<br>" + 
+                                "<b>Trampoline:</b> " + data.property_features.trampoline.detected + " (" +data.property_features.trampoline.score + ")<br>" +
+                                "<b>Deck:</b> " + data.property_features.deck.detected + " (" +data.property_features.deck.score + ")<br>"  +
+                                "<b>Playground:</b> " + data.property_features.playground.detected + " (" +data.property_features.playground.score + ")<br>" + 
+                                "<b>Sport court:</b> " + data.property_features.sport_court.detected + " (" +data.property_features.sport_court.score + ")<br>" 
+                                ;
+         
+                        infoBody.innerHTML = FootprintInfoHTML;
+                    }
+   
+                })
+            }
+
+            function wait(ms) {
+                var start = Date.now(),
+                    now = start;
+                while (now - start < ms) {
+                    now = Date.now();
+                }
+            }
+
+            function changeOrientation(orientation) {  
+                vexMap.changeOrientation(orientation);
+            }
+
+            function changeMode(mode) {
+                vexMap.changeMode(mode)
+            }
+
+        function parseCoordinates() {
+            //Parse the latitude and longitude from the text box. 
+            var SearchText = searchBox.value.trim();
+
+            var coords = SearchText.split(",");
+            latitude = parseFloat(coords[0].trim());
+            longitude = parseFloat(coords[1].trim());
+
+            const newCenter = [longitude, latitude];
+            console.log(newCenter);
+            vexMap.setCenter(newCenter);
+        }
+
+        function clearMeasurements() {
+            FootprintInfoHTML = "";
+            infoBody.innerHTML = FootprintInfoHTML;
+            vectorLayer.clear();
+            pushpinLayer.clear();
+        }
+
+        function Login() {
+            refreshAuthToken();
+        }
+        
+        function getUserType() {
+            if (authToken != "") {
+                return;}
+
+            var userID = txtUserid.value.trim();
+
+            let url = new URL("https://api.gic.org/auth/GetUserAuthenticationSystem");
+           
+
+            // Add KVP
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+
+            url.search = urlencoded.toString();
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+
+                    if (data.type == "password")
+                    {
+                        // Disable user input
+                        document.getElementById("txtUserid").disabled = true;
+                        // Show password input
+                        document.getElementById("pwBox").style = "";
+                        // Hide "Next" button
+                        document.getElementById("NextBtn").style = "display: none";
+                        // Show "Login" button
+                        document.getElementById("LoginBtn").style = "";
+                    }
+                    else if (data.type == "federated")
+                    {
+                        codeEndpoint = data.url + redirect_uri;
+                        window.location.href = codeEndpoint;
+                    }
+
+                }).catch(err => {
+                    // code to handle request errors
+                });
+        }
+
+        function refreshAuthToken() {
+            if (authToken != "") {return;}
+
+            var userID  = txtUserid.value.trim();
+            var password  = pwBox.value.trim();
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("username", userID);
+            urlencoded.append("password", password);
+
+            var requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: urlencoded,
+                redirect: "follow"
+            };
+            var authURL = "https://api.gic.org/auth/Login";
+
+            fetch(authURL,requestOptions )
+                .then(res => res.json())
+                .then(data => {
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    //Great! we have our token, lets go load the map control
+                    loadMapScenario();
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+
+        function refreshFederatedAuthToken(code, state) {
+            if (authToken != "") return;
+
+            var urlencoded = new URLSearchParams();
+            urlencoded.append("code", code);
+            urlencoded.append("state", state);
+            urlencoded.append("redirect_uri", redirect_uri);
+
+            let url = new URL("https://api.gic.org/auth/FederatedLogin");
+
+            url.search = urlencoded.toString();
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data)
+
+                    //Grab the token from the response
+                    authToken =  data.token;
+
+                    //Great! we have our token, lets go Load the map control
+                    loadMapScenario();
+                }).catch(err => {
+                    // code to handle request errors
+                });
+
+        }
+
+        loadMapScenario();
+    </script>
+    
+	</html>
