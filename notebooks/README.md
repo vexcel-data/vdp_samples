@@ -19,6 +19,6 @@ This set of notebooks showcase a range of solutions to common problems that user
 - Simple algorithms on DSM and RGB imagery: shows how the DSM can be segmented using simple clustering algorithms to detect features in an unsupervised manner and map the results from the reference frame of an image to the earth
 - Pulling tiles for a large area: in cases where the ExtractOrthoImages API isn't appropriate, this notebook introduces strategies for aquiring tiles over a large area, georeferencing them, and then creating a mosaic in an arbitrary CRS
 - Point cloud creation: some users of our elevation products are more familiar with point clouds and this notebook shows how to transform our DSM and Ortho tiles in LAS files
-- Create world files ExtractOrthoImages: when using the ExtractOrthoImage API, it can be useful to obtain a 'World file' that provides the location of that image on the world. This notebook takes a first principles approach to doing this that - while is implemented in Python - can be adapted to other languages as it doesn't rely on libraries like Shapely or Rasterio that only exist in Python
+- Create world files ExtractOrthoImages: when using the ExtractOrthoImage API, it can be useful to obtain a 'World file' that provides the location of that image on the world. This notebook takes a first principles approach to doing this that - while is implemented in Python - can be adapted to other languages as it doesn't rely on libraries like Shapely or Rasterio that only exist in Python 
 
 
