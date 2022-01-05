@@ -8,7 +8,7 @@ There are 4 main folders in this repository:
 - scripts: python scripts that carry out a specific function created mostly for their utility, to either make it easier for a customer to use our data or for us to carry out common analyses
 - notebooks: python notebooks that show customers how to use our products. While they're useful, their format lends itself to being a way of educating customers and this is this folders primary distinction from the scripts folder
 - vpd_python_tools: a place for functions that are generic enough to be used across at least 2 scripts or notebooks. If you find yourself copynig a function from one script/notebook to another, consider adding it to vdp_python_tools and importing from there
-- web (TODO): a place for small client side web apps. For each individual app, create a new folder and place all code in that folder i.e
+- web: a place for small client side web apps. For more information on each app, please address the README.md
     ```
     vdp_python_tools_and_snippets/
       web/
