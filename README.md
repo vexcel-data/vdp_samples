@@ -1,6 +1,6 @@
 ## Introduction
 
-This repository is primarily aimed to get Vexcel Data Program customers, and GIC members up and running with Vexcel products by providing code examples in Python and Javascript that utilise our API. For those without an existing subscription or evaluation license, there is an limited samlple data API available at https://vdp-evaluation.herokuapp.com that can be used by anyone. However, for the best experience, get in touch at https://vexceldata.com/request-a-demo/ to request an evaluation with less limiations.
+This repository is primarily aimed to get Vexcel Data Program customers, and GIC members up and running with Vexcel products by providing code examples in Python and Javascript that utilise our API. For those without an existing subscription or evaluation license, get in touch at https://vexceldata.com/request-a-demo/ to request an evaluation with less limiations.
 
 ## How to use this repo
 
