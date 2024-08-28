@@ -1,3 +1,5 @@
+#This code utilizes Pulling Tiles for a Large Area script and incorporates the use of threading so it will download faster, make sure to update with your token and paths where indicated
+# Also, check the zoom level, file format, etc. to make sure you are downloading the tiles how you would like
 from shapely.geometry import Polygon
 from shapely.wkt import loads
 import math
