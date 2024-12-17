@@ -1,6 +1,6 @@
 ## Introduction
 
-This repository is primarily aimed to get Vexcel Data Program customers, and GIC members up and running with Vexcel products by providing code examples in Python and Javascript that utilise our API. For those without an existing subscription or evaluation license, get in touch at https://vexceldata.com/request-a-demo/ to request an evaluation with less limiations.
+This repository is primarily aimed to get Vexcel Data Program customers, and GIC members up and running with Vexcel products by providing code examples in Python and Javascript that utilize our API. For those without an existing subscription or evaluation license, get in touch at https://vexceldata.com/request-a-demo/ to request an evaluation with less limiations.
 
 ## How to use this repo
 
@@ -26,16 +26,16 @@ In order to use this repo effectively, you'll need to install vdp_python_tools (
 2. From within this folder (at the same level as this README.md) run `conda env create -f environment.yml` to install all of the necessary libraries based on the supplied environment.yml. It will create an environment named `vdp_python_tools`
 3. Run `conda activate vdp_python_tools`
 4. Run `pip install .`
-5. The best way to handle authentication is to have your user credentials stored as environment variables. You could pass your username and password to the authentication function each time, but it's easier and more secure to avoid placing your credentials in code and just use environment variables. Add your password e.g "aReallyGoodPassword123" to an evironment variable called `VDP_PASSWORD` and your email e.g my@email.com to `VDP_USERNAME`. [This article](https://dev.to/biplov/handling-passwords-and-secret-keys-using-environment-variables-2ei0#:~:text=To%20save%20passwords%20and%20secret,Setting%20click%20on%20Environment%20Variables%20) does a great job of explaining how to set environment variables on Windows, Linux or OSX. Don't forget that you'll need to create a new terminal, as the environment variables won't be defined until the terminal restarts (or, run `source ~/.bashrc` or `source ~/.bash_profile` depending on where you saved those variables).
+5. The best way to handle authentication is to have your user credentials stored as environment variables. You could pass your username and password to the authentication function each time, but it's easier and more secure to avoid placing your credentials in code and just use environment variables. Add your password e.g "aReallyGoodPassword123" to an environment variable called `VDP_PASSWORD` and your email e.g my@email.com to `VDP_USERNAME`. [This article]([https://dev.to/biplov/handling-passwords-and-secret-keys-using-environment-variables-2ei0#:~:text=To%20save%20passwords%20and%20secret,Setting%20click%20on%20Environment%20Variables%20](https://dev.to/pizofreude/environment-variables-a-comprehensive-guide-34dg)) does a great job of explaining how to set environment variables on Windows, Linux or OSX. Don't forget that you'll need to create a new terminal, as the environment variables won't be defined until the terminal restarts (or, run `source ~/.bashrc` or `source ~/.bash_profile` depending on where you saved those variables).
 6. If everything ran without an error, you should be able to run the following:
    1. `python`
    2. (from within the python console) `from vdp_python_tools.authentication import login; login()` and that should print a long string of random letters and numbers which is your authentication token! The Python notebooks in notebooks/basic explain how to use this token to get data back from the API.d 
 
-For more infomration on the functions within vdp_python_tools, see the section further down.
+For more information on the functions within vdp_python_tools, see the section further down.
 
 ### Using the Jupyter notebooks
 
-Jupyter (Julia + Python) allows you to view Python code (and other supported languages) in a notebook format where you can write code in a series of cells and observe the output from funtions before moving to the next step in your workflow. It's a great way to explore the pieces in a data pipeline before packaging it all up into a script or a new function.
+Jupyter (Julia + Python) allows you to view Python code (and other supported languages) in a notebook format where you can write code in a series of cells and observe the output from functions before moving to the next step in your workflow. It's a great way to explore the pieces in a data pipeline before packaging it all up into a script or a new function.
 
 Jupyter was installed automatically in the steps above. To use Jupyter, simply run `jupyter notebook` on the command line. This will output something like:
 ```
@@ -47,7 +47,7 @@ Jupyter was installed automatically in the steps above. To use Jupyter, simply r
 ```
 Typically your web browser will automatically have a new tab opened at http://localhost:8888. If it doesn't, navigate there yourself. You'll need to add the token which is printed into the output above and will change each time you run Jupyter.
 
-If you run `jupyter notebook` from the top of this repo, you'll see a file explorer with list of folders including notebooks. You can navigate into folders to view the text format of each file but notebooks will open in their notebook format.
+If you run `jupyter notebook` from the top of this repo, you'll see a file explorer with a list of folders including notebooks. You can navigate into folders to view the text format of each file but notebooks will open in their notebook format.
 
 
 ## Getting updates
