@@ -22,12 +22,13 @@ In order to use this repo effectively, you'll need to install vdp_python_tools (
 ### Installing vdp_python_tools
 
 0. Clone this repo
-1. Make sure you have Anaconda which is a handy package manager for Python. It's more powerful than pip as it will take care of tricky libraries like GDAL. To get Anaconda, head to https://docs.conda.io/en/latest/miniconda.html to learn how to get that installed
-2. From within this folder (at the same level as this README.md) run `conda env create -f environment.yml` to install all of the necessary libraries based on the supplied environment.yml. It will create an environment named `vdp_python_tools`
-3. Run `conda activate vdp_python_tools`
-4. Run `pip install .`
-5. The best way to handle authentication is to have your user credentials stored as environment variables. You could pass your username and password to the authentication function each time, but it's easier and more secure to avoid placing your credentials in code and just use environment variables. Add your password e.g "aReallyGoodPassword123" to an environment variable called `VDP_PASSWORD` and your email e.g my@email.com to `VDP_USERNAME`. (This article https://dev.to/pizofreude/environment-variables-a-comprehensive-guide-34dg does a great job of explaining how to set environment variables on Windows, Linux or OSX. Don't forget that you'll need to create a new terminal, as the environment variables won't be defined until the terminal restarts (or, run `source ~/.bashrc` or `source ~/.bash_profile` depending on where you saved those variables).
-6. If everything ran without an error, you should be able to run the following:
+1. Download latest version of Python - https://www.python.org/downloads/
+2. Make sure you have Anaconda which is a handy package manager for Python. It's more powerful than pip as it will take care of tricky libraries like GDAL. To get Anaconda, head to https://docs.conda.io/en/latest/miniconda.html to learn how to get that installed
+3. From within this folder (at the same level as this README.md) run `conda env create -f environment.yml` to install all of the necessary libraries based on the supplied environment.yml. It will create an environment named `vdp_python_tools`
+4. Run `conda activate vdp_python_tools`
+5. Run `pip install .`
+6. The best way to handle authentication is to have your user credentials stored as environment variables. You could pass your username and password to the authentication function each time, but it's easier and more secure to avoid placing your credentials in code and just use environment variables. Add your password e.g "aReallyGoodPassword123" to an environment variable called `VDP_PASSWORD` and your email e.g my@email.com to `VDP_USERNAME`. (This article https://dev.to/pizofreude/environment-variables-a-comprehensive-guide-34dg does a great job of explaining how to set environment variables on Windows, Linux or OSX. Don't forget that you'll need to create a new terminal, as the environment variables won't be defined until the terminal restarts (or, run `source ~/.bashrc` or `source ~/.bash_profile` depending on where you saved those variables).
+7. If everything ran without an error, you should be able to run the following:
    1. `python`
    2. (from within the python console) `from vdp_python_tools.authentication import login; login()` and that should print a long string of random letters and numbers which is your authentication token! The Python notebooks in notebooks/basic explain how to use this token to get data back from the API.d 
 
